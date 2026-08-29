@@ -9,12 +9,10 @@ Thumbs.db
 *.ipr
 *.iws
 
-# Local agent / IDE caches (keep committed Cursor rules)
+# Local agent / IDE caches
 .agents/
 .codex/
-.cursor/*
-!.cursor/rules/
-!.cursor/rules/**
+.cursor/
 
 # Secrets and local env (keep *.example)
 .env
