@@ -1,0 +1,162 @@
+# Mini bank network for AIOps Sentinel PFE.
+# Living lab: real SNMP / HTTP / TCP / RTSP endpoints. Sentinel observes them;
+# these simulators never call Sentinel APIs.
+#
+# attacker-01
+#     |
+# bank-fw-01      PING + SNMP v2c :161 + Syslog + NetFlow
+#     |
+# core-rtr-01     PING + SNMP v2c :161 (IF-MIB counters)
+#     |
+# core-sw-01      PING + SNMP v2c :161
+#    /   |   \
+# bank-srv-01     HTTP + TCP :8080
+# atm-01          TCP :9090 + periodic HTTP to bank-srv-01
+# camera-01       RTSP :8554/live + HTTP :8081
+
+name: bank-lab
+
+# Management network (Containerlab / eth0 on every node).
+# Used for docker exec / inspect and Sentinel reachability. Not the bank data plane.
+# Docker gateway is 172.30.30.1; node addresses below avoid that.
+mgmt:
+  network: banklab-mgmt
+  ipv4-subnet: 172.30.30.0/24
+
+topology:
+  defaults:
+    kind: linux
+    image: alpine:latest
+
+  nodes:
+    # WAN host on 10.0.0.0/24. Default route toward the firewall WAN address.
+    attacker-01:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.30.30.50
+      cmd: sleep infinity
+      binds:
+        - scenarios:/opt/scenarios:ro
+      exec:
+        - sh -c "command -v nc >/dev/null || apk add --no-cache netcat-openbsd"
+        - ip addr add 10.0.0.10/24 dev eth1
+        - ip route replace default via 10.0.0.1
+
+    # Firewall / WAN edge.
+    # eth1 = WAN 10.0.0.0/24, eth2 = transit 10.0.1.0/30.
+# Forwards real nftables DENY lines to Sentinel UDP 5514 on banklab-mgmt.
+# Continuous NetFlow v5 via fprobe on eth1 (WAN), not from DENY log text.
+    # snmpd (community banklab) listens on UDP 161 including mgmt 172.30.30.10.
+    bank-fw-01:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.30.30.10
+      cmd: sleep infinity
+      env:
+        SENTINEL_SYSLOG_HOST: pfe-backend-1
+        SENTINEL_SYSLOG_PORT: "5514"
+        SENTINEL_NETFLOW_HOST: pfe-netflow-tools-1
+        SENTINEL_NETFLOW_PORT: "2055"
+      binds:
+        - services/firewall:/opt/firewall:ro
+        - services/netflow:/opt/netflow:ro
+        - services/snmp:/opt/snmp:ro
+        - .runtime:/opt/runtime:ro
+      exec:
+        - sh -c "command -v nft >/dev/null || apk add --no-cache nftables; command -v nc >/dev/null || apk add --no-cache netcat-openbsd; command -v python3 >/dev/null || apk add --no-cache python3"
+        - sysctl -w net.ipv4.ip_forward=1
+        - ip addr add 10.0.0.1/24 dev eth1
+        - ip addr add 10.0.1.1/30 dev eth2
+        - ip route add 10.10.10.0/24 via 10.0.1.2
+        - sh /opt/firewall/setup-firewall.sh
+        - sh /opt/snmp/start-snmpd.sh BANK-FW-01
+        - sh /opt/netflow/start-softflowd.sh
+
+    # Core router between transit and internal LAN.
+    # eth1 = uplink 10.0.1.0/30, eth2 = LAN gateway 10.10.10.1.
+    core-rtr-01:
+      mgmt-ipv4: 172.30.30.11
+      binds:
+        - services/snmp:/opt/snmp:ro
+      exec:
+        - sysctl -w net.ipv4.ip_forward=1
+        - ip addr add 10.0.1.2/30 dev eth1
+        - ip addr add 10.10.10.1/24 dev eth2
+        - ip route add 10.0.0.0/24 via 10.0.1.1
+        - sh /opt/snmp/start-snmpd.sh CORE-RTR-01
+
+    # Internal aggregation switch (L2 only, no vendor NOS yet).
+    # Bridges LAN-facing interfaces so 10.10.10.0/24 is one broadcast domain.
+    core-sw-01:
+      mgmt-ipv4: 172.30.30.12
+      binds:
+        - services/snmp:/opt/snmp:ro
+      exec:
+        - ip link add name br0 type bridge
+        - ip link set br0 up
+        - ip link set eth1 master br0
+        - ip link set eth2 master br0
+        - ip link set eth3 master br0
+        - ip link set eth4 master br0
+        - ip link set eth1 up
+        - ip link set eth2 up
+        - ip link set eth3 up
+        - ip link set eth4 up
+        - sh /opt/snmp/start-snmpd.sh CORE-SW-01
+
+    # Bank application server on the internal LAN.
+    # python:3.12-alpine provides python3. PID 1 stays alive with sleep;
+    # the HTTP API is started from exec after addressing is applied.
+    # Bind paths are relative to this topology file (no leading ./).
+    bank-srv-01:
+      kind: linux
+      image: python:3.12-alpine
+      mgmt-ipv4: 172.30.30.20
+      cmd: sleep infinity
+      binds:
+        - services/bank-server:/opt/bank-server:ro
+      exec:
+        - sh -c "command -v ip >/dev/null || apk add --no-cache iproute2"
+        - ip addr add 10.10.10.20/24 dev eth1
+        - ip route replace default via 10.10.10.1
+        - sh /opt/bank-server/start-server.sh
+
+    # ATM: TCP availability on :9090 plus normal HTTP client toward bank-srv-01.
+    atm-01:
+      kind: linux
+      image: alpine:latest
+      mgmt-ipv4: 172.30.30.30
+      cmd: sleep infinity
+      binds:
+        - services/atm:/opt/atm:ro
+      exec:
+        - ip addr add 10.10.10.30/24 dev eth1
+        - ip route replace default via 10.10.10.1
+        - sh /opt/atm/start-atm-service.sh
+        - sh /opt/atm/start-atm-client.sh
+
+    # IP camera: HTTP :8081 plus RTSP :8554/live (baked image, no runtime apk).
+    camera-01:
+      kind: linux
+      image: banklab-camera:local
+      mgmt-ipv4: 172.30.30.40
+      cmd: sleep infinity
+      binds:
+        - services/camera:/opt/camera:ro
+      exec:
+        - ip addr add 10.10.10.40/24 dev eth1
+        - ip route replace default via 10.10.10.1
+        - sh /opt/camera/start-camera.sh
+
+  links:
+    # WAN / attacker network: 10.0.0.0/24
+    - endpoints: ["attacker-01:eth1", "bank-fw-01:eth1"]
+
+    # Firewall-to-core transit: 10.0.1.0/30
+    - endpoints: ["bank-fw-01:eth2", "core-rtr-01:eth1"]
+
+    # Internal bank LAN: 10.10.10.0/24 (via core-sw-01)
+    - endpoints: ["core-rtr-01:eth2", "core-sw-01:eth1"]
+    - endpoints: ["core-sw-01:eth2", "bank-srv-01:eth1"]
+    - endpoints: ["core-sw-01:eth3", "atm-01:eth1"]
+    - endpoints: ["core-sw-01:eth4", "camera-01:eth1"]

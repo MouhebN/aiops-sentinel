@@ -1,0 +1,27 @@
+#!/usr/sbin/nft -f
+# bank-fw-01 forward policy. Default accept so ATM/camera LAN traffic
+# (which never hits this node) and other routed flows stay up.
+# Only the attacker reconnaissance ports toward bank-srv-01 are logged and dropped.
+# Do not "flush ruleset": that would wipe unrelated nftables in this netns.
+
+table inet bank_fw {
+  chain input {
+    type filter hook input priority 0; policy accept;
+  }
+
+  chain output {
+    type filter hook output priority 0; policy accept;
+  }
+
+  chain forward {
+    type filter hook forward priority 0; policy accept;
+
+    ct state established,related accept
+    ct state invalid drop
+
+    ip saddr 10.0.0.10 ip daddr 10.10.10.20 tcp dport { 21, 22, 23, 80, 443, 3306, 5432 } \
+      meta nftrace set 1 \
+      log prefix "BANK-FW-01 firewall: DENY " level warn \
+      drop
+  }
+}

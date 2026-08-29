@@ -1,0 +1,20 @@
+{
+  "bank-fw-01": {
+    "deviceId": "syslog-bank-fw-01",
+    "deviceName": "Bank Perimeter Firewall 01",
+    "deviceType": "FIREWALL",
+    "location": "Head Office Security Zone"
+  },
+  "branch-switch-01": {
+    "deviceId": "syslog-branch-switch-01",
+    "deviceName": "Branch Switch 01",
+    "deviceType": "SWITCH",
+    "location": "Branch 01 Network Room"
+  },
+  "branch-ups-01": {
+    "deviceId": "syslog-branch-ups-01",
+    "deviceName": "Branch UPS 01",
+    "deviceType": "UPS",
+    "location": "Branch 01 Network Room"
+  }
+}

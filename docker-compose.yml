@@ -1,0 +1,123 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: aiops_sentinel
+      POSTGRES_USER: aiops
+      POSTGRES_PASSWORD: aiops123
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  fastapi:
+    build:
+      context: ./fastapi
+    depends_on:
+      - ollama
+    environment:
+      AI_PROVIDER: ollama
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: llama3.2:3b
+      OLLAMA_TIMEOUT_SECONDS: "300"
+      AI_RULES_FALLBACK_ENABLED: "true"
+      AI_MAX_EVENT_GROUPS: "10"
+      AI_MAX_PREVIOUS_SIMILAR_INCIDENTS: "3"
+      AI_MAX_METRIC_SERIES: "10"
+      AI_MAX_PCAP_SUMMARIES: "3"
+      AI_MAX_NETFLOW_GROUPS: "5"
+      AI_MAX_MESSAGE_CHARS: "1000"
+      AI_ANALYSIS_VERSION: "v1"
+      AI_CACHE_ENABLED: "true"
+      AI_CACHE_PATH: /app/data/ai_analysis_cache.sqlite
+    ports:
+      - "8001:8001"
+    volumes:
+      - fastapi_cache:/app/data
+
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  backend:
+    build:
+      context: ./backend
+    depends_on:
+      - postgres
+      - fastapi
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/aiops_sentinel
+      SPRING_DATASOURCE_USERNAME: aiops
+      SPRING_DATASOURCE_PASSWORD: aiops123
+      APP_AI_SERVICE_BASE_URL: http://fastapi:8001
+      NETFLOW_ENABLED: "true"
+      NETFLOW_NFDUMP_COMMAND: nfdump
+      NETFLOW_DATA_DIR: /data/netflow
+      NETFLOW_COLLECTOR_PORT: 2055
+      NETFLOW_AUTO_IMPORT_ENABLED: "true"
+      NETFLOW_IMPORT_INTERVAL_MS: "15000"
+      # RFC 3164 syslog timestamps have no timezone; interpret them in the site zone, store UTC.
+      TZ: Africa/Tunis
+      APP_SYSLOG_DEFAULT_TIMEZONE: Africa/Tunis
+    ports:
+      - "8080:8080"
+      - "5514:5514/udp"
+    volumes:
+      - netflow_data:/data/netflow:ro
+    networks:
+      default: {}
+      banklab-mgmt:
+        aliases:
+          - sentinel-syslog
+
+  netflow-tools:
+    build:
+      context: ./docker/netflow-tools
+    command:
+      - sh
+      - -c
+      - mkdir -p /data/netflow && nfexpire -t 2d -s 256m -u /data/netflow >/dev/null 2>&1 || true && nfcapd -w /data/netflow -p 2055 -t 15 -e -4 -D && tail -f /dev/null
+    ports:
+      - "2055:2055/udp"
+    volumes:
+      - netflow_data:/data/netflow
+    networks:
+      default: {}
+      banklab-mgmt:
+        aliases:
+          - sentinel-netflow
+
+  frontend:
+    build:
+      context: ./frontend
+    depends_on:
+      - backend
+      - fastapi
+    ports:
+      - "3000:80"
+
+  netflow-demo-exporter:
+    profiles: ["demo"]
+    build:
+      context: ./docker/netflow-demo-exporter
+    depends_on:
+      - netflow-tools
+
+volumes:
+  postgres_data:
+  netflow_data:
+  ollama_data:
+  fastapi_cache:
+
+# Containerlab management plane (external). Compose attaches the backend
+# (Syslog UDP 5514) and nfcapd collector to this existing bridge.
+# The frontend stays on the Compose default network only.
+# start-pfe.sh creates the network only if missing, using the same name
+# and subnet Containerlab expects — never a second management network.
+networks:
+  banklab-mgmt:
+    name: banklab-mgmt
+    external: true

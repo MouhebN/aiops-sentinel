@@ -1,0 +1,76 @@
+input:-webkit-autofill,
+input:-webkit-autofill:focus {
+  transition:
+    background-color 600000s 0s,
+    color 600000s 0s;
+}
+input[data-autocompleted] {
+  background-color: transparent !important;
+}
+
+.filter-card .MuiGrid-item {
+  align-self: flex-start;
+}
+
+.filter-card .MuiFormControl-root,
+.ai-analysis-card .compact-control {
+  height: auto !important;
+}
+
+.filter-card .MuiInputBase-root,
+.filter-card .MuiOutlinedInput-root,
+.ai-analysis-card .compact-control .MuiInputBase-root,
+.ai-analysis-card .compact-control .MuiOutlinedInput-root {
+  height: 46px !important;
+  min-height: 46px;
+  max-height: 46px;
+  align-items: center;
+}
+
+.filter-card .MuiOutlinedInput-input,
+.ai-analysis-card .compact-control .MuiOutlinedInput-input {
+  box-sizing: border-box;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.filter-card .MuiSelect-select,
+.ai-analysis-card .compact-control .MuiSelect-select {
+  min-height: 0 !important;
+  height: 22px !important;
+  max-height: 22px !important;
+  display: flex !important;
+  align-items: center;
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.filter-card input[type='datetime-local'] {
+  min-height: 22px;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .diagnostic-report,
+  .diagnostic-report * {
+    visibility: visible;
+  }
+
+  .diagnostic-report {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+}

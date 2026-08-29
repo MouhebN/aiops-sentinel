@@ -1,0 +1,75 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+*~
+*.swp
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Local agent / IDE caches (keep committed Cursor rules)
+.agents/
+.codex/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
+
+# Secrets and local env (keep *.example)
+.env
+.env.*
+!.env.example
+**/.env.example
+*.pem
+*.key
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+coverage/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Java / Maven
+backend/target/
+**/target/
+*.class
+*.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Local databases / traces (lab uses Compose Postgres, not these)
+data/
+backend/data/
+*.mv.db
+*.trace.db
+*.sqlite
+*.sqlite3
+
+# Packet captures (generated during demos; can be large)
+*.pcap
+*.pcapng
+
+# Containerlab deploy output (includes generated TLS keys)
+containerlab/clab-*/
+containerlab/.runtime/*
+!containerlab/.runtime/.gitkeep
+
+# Lab / collector scratch
+runtime/
+fastapi/data/
+logs/
+*.log
+
+# Docker / compose leftovers
+*.override.yml

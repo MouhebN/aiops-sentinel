@@ -1,0 +1,30 @@
+---
+description: After each completed feature, document it in docs/history for the PFE rapport. Do this automatically; the user will not remind you.
+alwaysApply: true
+---
+
+# PFE improvement history
+
+After finishing a real feature, bugfix, or diagnostic improvement, **write the history entry in the same turn**. Do not wait for the user to ask. Do not skip it because the chat already explained the change.
+
+Do **not** document trivial edits (typos, formatting-only, comment-only).
+
+## Where
+
+- New file: `docs/history/YYYY-MM-DD-short-title.md` (today's date from user_info)
+- Update the index table in `docs/history/README.md` (newest first)
+- Match the structure of existing entries (see `docs/history/2026-08-19-evidence-aware-ai-prompts.md`)
+
+## Required sections
+
+Context, Problem, Design, Implementation (files), Tests, Result or example, Out of scope, Verify commands, Rapport talking points.
+
+Metadata table at the top: Date, Module, Type, Status.
+
+Write for later copy-paste into the PFE rapport: concrete, technical, no filler.
+
+## Example index row
+
+```markdown
+| 2026-08-19 | Evidence-aware AI prompt templates | FastAPI / Ollama | [2026-08-19-evidence-aware-ai-prompts.md](./2026-08-19-evidence-aware-ai-prompts.md) |
+```

@@ -1,0 +1,19 @@
+.topology-attack-edge {
+  stroke-dasharray: 6 4;
+}
+
+.topology-attack-edge.animated path {
+  animation: topology-dash 1.2s linear infinite;
+}
+
+@keyframes topology-dash {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .topology-attack-edge.animated path {
+    animation: none;
+  }
+}

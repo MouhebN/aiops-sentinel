@@ -1,0 +1,8 @@
+# Generated at deploy / start-pfe (IPs change). Keep the directory.
+.runtime/*
+!.runtime/.gitkeep
+
+# Containerlab writes this next to the topology on deploy (TLS, inventory).
+clab-*/
+*.pcap
+*.pcapng
