@@ -73,3 +73,6 @@ logs/
 
 # Docker / compose leftovers
 *.override.yml
+
+# Internal working notes (not for the public repo)
+AIOPS_SENTINEL_CHECKLIST.md
