@@ -47,7 +47,8 @@ venv/
 *.egg-info/
 
 # Local databases / traces (lab uses Compose Postgres, not these)
-data/
+# /data/ is repo-root only — do not ignore frontend/src/data
+/data/
 backend/data/
 *.mv.db
 *.trace.db
