@@ -18,6 +18,7 @@ A Cursor project rule (`.cursor/rules/pfe-history.mdc`) tells the agent to add a
 
 | Date | Title | Module | File |
 | --- | --- | --- | --- |
+| 2026-10-01 | Frontend image OpenSSL CVE-2026-31789 | Frontend image / Trivy | [2026-10-01-frontend-image-openssl.md](./2026-10-01-frontend-image-openssl.md) |
 | 2026-10-01 | FastAPI image libxml2 CVE-2026-6653 | FastAPI image / Trivy | [2026-10-01-fastapi-image-libxml2.md](./2026-10-01-fastapi-image-libxml2.md) |
 | 2026-10-01 | CI green: Tomcat 11.0.26 and quality-gate findings | Backend / GitHub Actions | [2026-10-01-ci-tomcat-and-quality-gate.md](./2026-10-01-ci-tomcat-and-quality-gate.md) |
 | 2026-10-01 | Trivy dependency and image scan | GitHub Actions / Trivy | [2026-10-01-trivy-scan.md](./2026-10-01-trivy-scan.md) |
