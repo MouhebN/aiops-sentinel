@@ -14,6 +14,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestAttributes;
@@ -29,13 +30,16 @@ public class AuditLogService {
     private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
 
     private final AuditLogRepository repository;
+    private final AuditLogService self;
     private final boolean trustedProxyEnabled;
 
     public AuditLogService(
             AuditLogRepository repository,
+            @Lazy AuditLogService self,
             @Value("${app.audit.trusted-proxy-enabled:false}") boolean trustedProxyEnabled
     ) {
         this.repository = repository;
+        this.self = self;
         this.trustedProxyEnabled = trustedProxyEnabled;
     }
 
@@ -81,7 +85,7 @@ public class AuditLogService {
         if (action != AuditAction.AI_ANALYSIS_REQUESTED && action != AuditAction.REPORT_EXPORTED) {
             throw new IllegalArgumentException("Client audit action is not allowed: " + action);
         }
-        log(action, targetType, targetId, details);
+        self.log(action, targetType, targetId, details);
     }
 
     public void logWarning(String message, Exception exception) {

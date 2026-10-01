@@ -93,9 +93,9 @@ public class H2EnumColumnMigration implements ApplicationRunner {
                     )
                     .forEach(row -> {
                         Object constraintName = row.get("constraint_name");
-                        if (constraintName != null) {
+                        if (constraintName instanceof String name && isSqlFragment(name)) {
                             try {
-                                jdbcTemplate.execute("ALTER TABLE syslog_sources DROP CONSTRAINT IF EXISTS " + constraintName);
+                                jdbcTemplate.execute("ALTER TABLE syslog_sources DROP CONSTRAINT IF EXISTS " + name); // NOSONAR java:S2077 identifier checked above
                             } catch (Exception exception) {
                                 LOGGER.debug("Skipping syslog_sources constraint {} drop: {}", constraintName, exception.getMessage());
                             }
@@ -113,8 +113,10 @@ public class H2EnumColumnMigration implements ApplicationRunner {
     }
 
     private void migrateEnumColumn(String table, String column) {
+        requireSqlFragment(table);
+        requireSqlFragment(column);
         try {
-            jdbcTemplate.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " VARCHAR(255)");
+            jdbcTemplate.execute("ALTER TABLE " + table + " ALTER COLUMN " + column + " VARCHAR(255)"); // NOSONAR java:S2077 identifier checked above
             LOGGER.info("Ensured {}.{} is stored as VARCHAR", table, column);
         } catch (Exception exception) {
             LOGGER.debug("Skipping enum column migration for {}.{}: {}", table, column, exception.getMessage());
@@ -122,8 +124,10 @@ public class H2EnumColumnMigration implements ApplicationRunner {
     }
 
     private void migrateEventColumn(String column, String type) {
+        requireSqlFragment(column);
+        requireSqlFragment(type);
         try {
-            jdbcTemplate.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS " + column + " " + type);
+            jdbcTemplate.execute("ALTER TABLE events ADD COLUMN IF NOT EXISTS " + column + " " + type); // NOSONAR java:S2077 identifier checked above
             LOGGER.info("Ensured events.{} exists", column);
         } catch (Exception exception) {
             LOGGER.debug("Skipping events.{} migration: {}", column, exception.getMessage());
@@ -148,9 +152,21 @@ public class H2EnumColumnMigration implements ApplicationRunner {
         }
     }
 
+    private static boolean isSqlFragment(String value) {
+        return value.matches("[A-Za-z0-9_(), ]+");
+    }
+
+    private static void requireSqlFragment(String value) {
+        if (!isSqlFragment(value)) {
+            throw new IllegalArgumentException("Refusing non-identifier SQL fragment");
+        }
+    }
+
     private void migrateDiagnosticReportColumn(String column, String type) {
+        requireSqlFragment(column);
+        requireSqlFragment(type);
         try {
-            jdbcTemplate.execute("ALTER TABLE diagnostic_reports ADD COLUMN IF NOT EXISTS " + column + " " + type);
+            jdbcTemplate.execute("ALTER TABLE diagnostic_reports ADD COLUMN IF NOT EXISTS " + column + " " + type); // NOSONAR java:S2077 identifier checked above
             LOGGER.info("Ensured diagnostic_reports.{} exists", column);
         } catch (Exception exception) {
             LOGGER.debug("Skipping diagnostic_reports.{} migration: {}", column, exception.getMessage());

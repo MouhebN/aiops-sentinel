@@ -18,6 +18,7 @@ A Cursor project rule (`.cursor/rules/pfe-history.mdc`) tells the agent to add a
 
 | Date | Title | Module | File |
 | --- | --- | --- | --- |
+| 2026-10-01 | CI green: Tomcat 11.0.26 and quality-gate findings | Backend / GitHub Actions | [2026-10-01-ci-tomcat-and-quality-gate.md](./2026-10-01-ci-tomcat-and-quality-gate.md) |
 | 2026-10-01 | Trivy dependency and image scan | GitHub Actions / Trivy | [2026-10-01-trivy-scan.md](./2026-10-01-trivy-scan.md) |
 | 2026-10-01 | SonarQube quality gate | GitHub Actions / JaCoCo | [2026-10-01-sonarqube-quality-gate.md](./2026-10-01-sonarqube-quality-gate.md) |
 | 2026-10-01 | Isolate Spring test databases | Backend tests / GitHub Actions | [2026-10-01-isolate-spring-test-databases.md](./2026-10-01-isolate-spring-test-databases.md) |
