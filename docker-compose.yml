@@ -99,6 +99,22 @@ services:
     ports:
       - "3000:80"
 
+  sonarqube:
+    image: sonarqube:community
+    profiles: ["quality"]
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    ports:
+      - "9000:9000"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+
   netflow-demo-exporter:
     profiles: ["demo"]
     build:
@@ -111,6 +127,9 @@ volumes:
   netflow_data:
   ollama_data:
   fastapi_cache:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:
 
 # Containerlab management plane (external). Compose attaches the backend
 # (Syslog UDP 5514) and nfcapd collector to this existing bridge.

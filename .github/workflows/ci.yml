@@ -96,3 +96,158 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+
+  sonarqube:
+    name: SonarQube
+    needs: backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+          cache-dependency-path: backend/pom.xml
+
+      - name: Raise vm.max_map_count
+        run: sudo sysctl -w vm.max_map_count=262144
+
+      - name: Start SonarQube
+        run: |
+          docker run -d --name sonarqube \
+            -p 9000:9000 \
+            -e SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true \
+            sonarqube:community
+
+      - name: Wait until SonarQube is UP
+        run: |
+          for attempt in $(seq 1 60); do
+            status="$(curl -sf http://127.0.0.1:9000/api/system/status || true)"
+            echo "attempt ${attempt}: ${status}"
+            if printf '%s' "$status" | grep -q '"status":"UP"'; then
+              exit 0
+            fi
+            sleep 10
+          done
+          docker logs sonarqube
+          exit 1
+
+      - name: Configure quality gate
+        env:
+          SONAR_ADMIN_PASSWORD: Aiops-Sonar-Gate-2026
+        run: bash .github/scripts/prepare-sonarqube.sh
+
+      - name: Analyze backend
+        working-directory: backend
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+        run: |
+          ./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar \
+            -Dsonar.host.url=http://127.0.0.1:9000 \
+            -Dsonar.token="$SONAR_TOKEN" \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      - name: Fail when the quality gate is red
+        env:
+          SONAR_ADMIN_PASSWORD: ${{ env.SONAR_ADMIN_PASSWORD }}
+        run: |
+          curl -sf -u "admin:${SONAR_ADMIN_PASSWORD}" \
+            "http://127.0.0.1:9000/api/qualitygates/project_status?projectKey=aiops-sentinel-backend" \
+            -o /tmp/gate.json
+          cat /tmp/gate.json
+          python3 -c 'import json; status=json.load(open("/tmp/gate.json"))["projectStatus"]["status"]; print(status); raise SystemExit(0 if status == "OK" else 1)'
+
+  trivy:
+    name: Trivy
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan repository
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          format: table
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: "0"
+
+      - name: Fail on critical repository findings
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Build application images
+        run: |
+          docker build -t aiops-backend:ci ./backend
+          docker build -t aiops-fastapi:ci ./fastapi
+          docker build -t aiops-frontend:ci ./frontend
+
+      - name: Scan backend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-backend:ci
+          format: table
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: "0"
+          skip-setup-trivy: true
+
+      - name: Fail on critical backend image findings
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-backend:ci
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Scan FastAPI image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-fastapi:ci
+          format: table
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: "0"
+          skip-setup-trivy: true
+
+      - name: Fail on critical FastAPI image findings
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-fastapi:ci
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          skip-setup-trivy: true
+
+      - name: Scan frontend image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-frontend:ci
+          format: table
+          severity: LOW,MEDIUM,HIGH,CRITICAL
+          exit-code: "0"
+          skip-setup-trivy: true
+
+      - name: Fail on critical frontend image findings
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aiops-frontend:ci
+          format: table
+          severity: CRITICAL
+          exit-code: "1"
+          skip-setup-trivy: true

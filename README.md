@@ -72,8 +72,29 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) r
 - **Backend** — Java 21, `./mvnw -B test` (H2, no Postgres)
 - **FastAPI** and **capture sensor** — Python 3.12 unit tests
 - **Frontend** — Node 20, `npm ci` and `npm run build`
+- **SonarQube** — after the backend job. JaCoCo writes `backend/target/site/jacoco/jacoco.xml`, then `sonarqube:community` analyzes the backend. The workflow fails if the quality gate is red (blocker issues or vulnerabilities). Coverage is reported and is not an 80% gate.
+- **Trivy** — in parallel. Scans the repository (dependencies and secrets) and the backend, FastAPI, and frontend images. The log shows the table. The job fails only on a **CRITICAL** finding.
 
-Containerlab, Ollama, SonarQube, image publish, and Netlify are not part of this workflow.
+Containerlab, Ollama, image publish, and Netlify are not part of this workflow.
+
+SonarQube for the defense dashboard is a Compose profile, so `./scripts/start-pfe.sh` does not start it:
+
+```bash
+sudo sysctl -w vm.max_map_count=262144
+docker compose --profile quality up -d sonarqube
+```
+
+Wait until http://localhost:9000 answers `{"status":"UP"}`, then install the same gate and print a token:
+
+```bash
+export SONAR_TOKEN="$(SONAR_ADMIN_PASSWORD='Aiops-Sonar-Gate-2026' bash .github/scripts/prepare-sonarqube.sh | sed -n 's/^SONAR_TOKEN=//p')"
+cd backend
+./mvnw -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:5.1.0.4751:sonar \
+  -Dsonar.host.url=http://127.0.0.1:9000 \
+  -Dsonar.token="$SONAR_TOKEN"
+```
+
+Open http://localhost:9000 (`admin` / `Aiops-Sonar-Gate-2026`). The CI server is a new container on every run; this local one is the screen to show the jury.
 
 ## Demo scenarios
 
