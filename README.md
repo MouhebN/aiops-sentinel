@@ -65,6 +65,16 @@ Open http://localhost:3000
 
 Frontend hot reload: `docker compose stop frontend && cd frontend && npm run dev`.
 
+## Continuous integration
+
+GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs on every push and pull request:
+
+- **Backend** — Java 21, `./mvnw -B test` (H2, no Postgres)
+- **FastAPI** and **capture sensor** — Python 3.12 unit tests
+- **Frontend** — Node 20, `npm ci` and `npm run build`
+
+Containerlab, Ollama, SonarQube, image publish, and Netlify are not part of this workflow.
+
 ## Demo scenarios
 
 Scripts change **lab state only** (no fake DB rows). Wait ~30–45 s and refresh the UI after outages.

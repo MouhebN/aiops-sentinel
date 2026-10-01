@@ -18,6 +18,7 @@ A Cursor project rule (`.cursor/rules/pfe-history.mdc`) tells the agent to add a
 
 | Date | Title | Module | File |
 | --- | --- | --- | --- |
+| 2026-10-01 | GitHub Actions build and test | GitHub Actions | [2026-10-01-github-actions-build-test.md](./2026-10-01-github-actions-build-test.md) |
 | 2026-08-29 | Dockerize frontend into start-pfe | Docker Compose / Nginx | [2026-08-29-dockerize-frontend.md](./2026-08-29-dockerize-frontend.md) |
 | 2026-08-27 | Operator demo scenario suite | scripts/demo + Containerlab | [2026-08-27-demo-scenario-suite.md](./2026-08-27-demo-scenario-suite.md) |
 | 2026-08-27 | BANK-SRV-01 stale PID recovery | Containerlab bank-srv-01 HTTP | [2026-08-27-bank-srv-stale-pid.md](./2026-08-27-bank-srv-stale-pid.md) |

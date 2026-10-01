@@ -23,6 +23,7 @@ import com.aiops.backend.topology.TopologyNodeResponse;
 import com.aiops.backend.topology.TopologyResponse;
 import com.aiops.backend.topology.TopologySecurityState;
 import com.aiops.backend.topology.TopologyService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -71,6 +72,11 @@ class ComponentIdentityResolutionTests {
 
     @Autowired
     private AiContextBuilderService aiContextBuilderService;
+
+    @BeforeEach
+    void removeComponentsCommittedByOtherTests() {
+        componentService.list().forEach(component -> componentService.delete(component.id()));
+    }
 
     @Test
     void primaryManagementIpResolvesComponent() {
