@@ -74,8 +74,16 @@ GitHub Actions workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) r
 - **Frontend** — Node 20, `npm ci` and `npm run build`
 - **SonarQube** — after the backend job. JaCoCo writes `backend/target/site/jacoco/jacoco.xml`, then `sonarqube:community` analyzes the backend. The workflow fails if the quality gate is red (blocker issues or vulnerabilities). Coverage is reported and is not an 80% gate.
 - **Trivy** — in parallel. Scans the repository (dependencies and secrets) and the backend, FastAPI, and frontend images. The log shows the table. The job fails only on a **CRITICAL** finding.
+- **Publish** — only on a push to `main`, after every job above is green. Rebuilds the same three images and pushes them to Docker Hub as `<DOCKERHUB_USERNAME>/aiops-sentinel-backend`, `aiops-sentinel-fastapi`, and `aiops-sentinel-frontend`, each tagged with the full git SHA and `latest`.
 
-Containerlab, Ollama, image publish, and Netlify are not part of this workflow.
+Pull requests still test and scan. They do not log in or push. Containerlab, Ollama, Postgres, and the capture sensor image are not published. Netlify is not part of this workflow.
+
+Create two Actions secrets on the repository (Settings → Secrets and variables → Actions). The workflow has no Docker Hub username in git, so another GitHub account later only needs the same two secret names:
+
+| Secret | Value |
+| --- | --- |
+| `DOCKERHUB_USERNAME` | Docker Hub username |
+| `DOCKERHUB_TOKEN` | Docker Hub access token (Account Settings → Personal access tokens), not the account password |
 
 SonarQube for the defense dashboard is a Compose profile, so `./scripts/start-pfe.sh` does not start it:
 
